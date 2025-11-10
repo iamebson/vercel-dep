@@ -1,0 +1,124 @@
+<div id='app'>
+<p></p>
+<div><cookie_five label1="Allow Cookie" label2="Dismiss" label3="Agree & Proceed" label4="Customize" label5="Accept All" label6="Customize Consent Preferences" label7="Save" id="mycookie_cookie_five_5"></cookie_five></div>
+</div><script src="<?php echo $rootUrl; ?>pages/aggregator/aggregator.js?v=<?php echo $cacheVersion; ?>" type="module"></script>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watchmode Movie Browser</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
+        h1 { color: #333; }
+        #movie-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 20px 0;
+        }
+        .movie-card {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            padding-bottom: 10px;
+        }
+        .movie-card img {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+        }
+        .movie-card h3 {
+            font-size: 1.1em;
+            margin: 10px 0 5px;
+            color: #5C6BC0; /* A nice shade of blue */
+        }
+        .movie-card p {
+            font-size: 0.9em;
+            color: #666;
+            margin: 0;
+        }
+        .loading {
+            text-align: center;
+            font-size: 1.2em;
+            padding: 50px;
+        }
+        .error {
+            color: red;
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎬 Popular Titles in the US</h1>
+    
+    <div id="movie-grid">
+        <p class="loading">Loading titles via Vercel Proxy...</p>
+    </div>
+
+    <script>
+        // *** IMPORTANT: REPLACE WITH YOUR DEPLOYED VERSEL URL ***
+        // This is the URL of your Vercel Serverless Function (e.g., /api/titles)
+        const VERCEL_API_URL = "https://vercel-dep-topaz.vercel.app/";
+
+        const movieGrid = document.getElementById('movie-grid');
+
+        // Function to fetch and display movies
+        async function fetchMovies() {
+            try {
+                // 1. CLEAR previous content and show loading
+                movieGrid.innerHTML = '<p class="loading">Loading titles via Vercel Proxy...</p>';
+
+                // 2. CALL YOUR SECURE VERVEL PROXY
+                // We request movies, TV shows, available in the US, page 1
+                const response = await fetch(`${VERCEL_API_URL}?regions=US&page=1&limit=20`);
+
+                // 3. HANDLE ERRORS
+                if (!response.ok) {
+                    const errorDetails = await response.json();
+                    throw new Error(`Proxy Error: ${response.status} - ${errorDetails.error || 'Unknown error'}`);
+                }
+
+                // 4. PROCESS RESPONSE
+                const data = await response.json();
+                
+                // Clear the loading message
+                movieGrid.innerHTML = ''; 
+
+                if (data.titles && data.titles.length > 0) {
+                    // 5. RENDER MOVIES
+                    data.titles.forEach(title => {
+                        const card = document.createElement('div');
+                        card.classList.add('movie-card');
+                        
+                        // Extracting data. Note: The 'list-titles' API provides poster URL.
+                        const posterUrl = title.poster || 'https://via.placeholder.com/200x300?text=No+Poster'; 
+                        const year = title.year ? `(${title.year})` : '';
+
+                        card.innerHTML = `
+                            <img src="${posterUrl}" alt="${title.name} Poster">
+                            <h3>${title.name}</h3>
+                            <p>${title.type === 'movie' ? 'Movie' : 'TV Series'} ${year}</p>
+                            <p>Watchmode ID: ${title.id}</p>
+                        `;
+                        movieGrid.appendChild(card);
+                    });
+                } else {
+                    movieGrid.innerHTML = '<p>No titles found or API returned an empty list.</p>';
+                }
+
+            } catch (error) {
+                console.error("Critical Fetch Error:", error);
+                movieGrid.innerHTML = `<p class="error">Failed to load movies. Check your Vercel proxy URL and function logs. Error: ${error.message}</p>`;
+            }
+        }
+
+        // Run the function when the page loads
+        fetchMovies();
+    </script>
+</body>
+</html>
